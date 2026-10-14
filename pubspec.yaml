@@ -1,7 +1,7 @@
 name: high
 description: "High – offline Grade 9-12 notes and Eritrean matriculation / model exam prep. Native Flutter (no WebView)."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.8.0
