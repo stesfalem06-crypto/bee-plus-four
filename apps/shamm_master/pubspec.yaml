@@ -1,7 +1,7 @@
 name: shamm_master
 description: "Shamm Master: the owner's app that makes Bee Seller top-up codes (Four / Winner credit)."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.8.0

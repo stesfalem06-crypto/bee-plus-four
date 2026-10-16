@@ -69,7 +69,7 @@ class Store {
   Store.forTest() : _p = null;
 
   final SharedPreferences? _p;
-  static const _kHistory = 'history_v1', _kNames = 'seller_names_v1', _kPin = 'pin_v1', _kTour = 'tour_done_v1';
+  static const _kHistory = 'history_v1', _kNames = 'seller_names_v1', _kPin = 'pin_v1', _kTour = 'tour_done_v1', _kFormat = 'code_format_v1';
 
   /// Newest first.
   final List<Issued> history = [];
@@ -78,6 +78,12 @@ class Store {
   bool get tourDone => _p?.getBool(_kTour) ?? false;
   Future<void> setTourDone(bool v) async {
     await _p?.setBool(_kTour, v);
+  }
+
+  /// Code layout for new codes (default classic RCH1, read by every Bee Seller).
+  CodeFormat get format => CodeFormat.fromCode(_p?.getString(_kFormat));
+  Future<void> setFormat(CodeFormat f) async {
+    await _p?.setString(_kFormat, f.code);
   }
 
   bool get hasPin => _p?.getString(_kPin) != null;

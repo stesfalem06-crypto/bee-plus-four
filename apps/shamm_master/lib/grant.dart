@@ -33,6 +33,26 @@ enum SellerApp {
   }
 }
 
+/// Which code layout to make. Default [rch1]: the only top-up code every Bee Seller release reads.
+enum CodeFormat {
+  /// RCH1|{sellerId}|{credit}|{nonce10}|{timeMs}|{hmac24}. Read by Bee Seller Android 1.0.0-beta, 1.1.0, 1.1.1, 1.1.2,
+  /// 1.2.0 and Windows 2.x / 3.x. One balance on old sellers (1.2.0 adds it to Four). Not bound to the seller.
+  rch1('RCH1', 'Classic (all Bee Seller)', 'Bee Seller 1.0 – 1.1.x (and newer)'),
+
+  /// BEE1|WHOLESALE:{n}|sellerId|nonce|hmac64. Bee Seller Android 1.1.2+ and the Flutter Bee Seller (com.bee.seller).
+  bee1('BEE1', 'BEE1 (Seller 1.1.2+)', 'Bee Seller 1.1.2 and newer'),
+
+  /// BEE1|WHOLESALE:{FOUR|WINNER}:{n}|… Bee Seller 1.2.0 / Windows 3.2.0 only.
+  bee1App('BEE1-APP', 'Per app (Seller 1.2.0)', 'Bee Seller 1.2.0 only');
+
+  const CodeFormat(this.code, this.label, this.detail);
+  final String code;
+  final String label;
+  final String detail;
+
+  static CodeFormat fromCode(String? c) => values.firstWhere((f) => f.code == c, orElse: () => rch1);
+}
+
 /// A code that was checked.
 class CodeCheck {
   const CodeCheck.ok({required this.app, required this.credit, required this.sellerId, required this.nonce, required this.kind})
@@ -69,6 +89,33 @@ class MasterGrant {
     final n = nonce ?? newNonce();
     final body = '$version|WHOLESALE:${app.code}:$credit|$id|$n';
     return '$body|${hmacHex(body)}';
+  }
+
+  /// Makes a code in [format] (default: classic RCH1, read by every Bee Seller).
+  static String make({required String sellerId, required int credit, required SellerApp app, CodeFormat format = CodeFormat.rch1}) {
+    switch (format) {
+      case CodeFormat.rch1:
+        return issueRch1(sellerId: sellerId, credit: credit);
+      case CodeFormat.bee1:
+        final id = sellerId.trim();
+        if (id.isEmpty || id.contains('|')) throw ArgumentError('Seller ID');
+        if (credit < 1 || credit > maxCredit) throw RangeError.range(credit, 1, maxCredit, 'credit');
+        return issueOld(sellerId: id, credit: credit, nonce: newNonce());
+      case CodeFormat.bee1App:
+        return issue(sellerId: sellerId, credit: credit, app: app);
+    }
+  }
+
+  /// Classic Bee Seller top-up code (core-licensing QrPayload.createRechargeCode layout):
+  /// RCH1|{hint}|{credit}|{nonce10}|{timestampMs}|{first 12 bytes of HMAC-SHA256 as hex}. hint = seller ID.
+  static String issueRch1({required String sellerId, required int credit, String? nonce, int? timestampMs}) {
+    final id = sellerId.trim();
+    if (id.isEmpty || id.contains('|') || id.contains(RegExp(r'\s'))) throw ArgumentError('Seller ID');
+    if (credit < 1 || credit > maxCredit) throw RangeError.range(credit, 1, maxCredit, 'credit');
+    final n = nonce ?? newNonce().substring(0, 10);
+    final ts = timestampMs ?? DateTime.now().millisecondsSinceEpoch;
+    final body = 'RCH1|$id|$credit|$n|$ts';
+    return '$body|${_rchMac(body)}';
   }
 
   /// Old format without the app part (= Four). Only for tests of old codes.

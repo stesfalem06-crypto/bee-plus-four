@@ -85,6 +85,8 @@ class HomeState extends State<Home> {
   final nameCtrl = TextEditingController();
   final customCtrl = TextEditingController();
   SellerApp? app;
+  CodeFormat? _format;
+  CodeFormat get format => _format ?? store.format;
   int? preset;
   bool custom = false;
   Issued? made;
@@ -247,7 +249,7 @@ class HomeState extends State<Home> {
       sellerId: id!,
       app: a,
       credit: n!,
-      code: MasterGrant.issue(sellerId: id, credit: n, app: a),
+      code: MasterGrant.make(sellerId: id, credit: n, app: a, format: format),
       name: name,
     );
     await store.add(e);
@@ -369,6 +371,29 @@ class HomeState extends State<Home> {
               ],
             ],
           ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Text('Code type: '),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButton<CodeFormat>(
+                key: const Key('codeFormat'),
+                isExpanded: true,
+                value: format,
+                items: [
+                  for (final f in CodeFormat.values)
+                    DropdownMenuItem(value: f, child: Text('${f.label}  ·  ${f.detail}', overflow: TextOverflow.ellipsis)),
+                ],
+                onChanged: (f) {
+                  if (f == null) return;
+                  setState(() => _format = f);
+                  store.setFormat(f);
+                },
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Section(
@@ -710,9 +735,9 @@ class HomeState extends State<Home> {
         showAboutDialog(
           context: context,
           applicationName: 'Shamm Master',
-          applicationVersion: '1.0.0',
+          applicationVersion: '1.0.1',
           children: const [
-            Text('Makes top-up codes for Bee Seller (1.2.0 and later). Each code adds Four or Winner credit for one seller, one time.'),
+            Text('Makes top-up codes for Bee Seller. Default code type (classic RCH1) works on every Bee Seller version; BEE1 types are for Bee Seller 1.1.2 / 1.2.0.'),
           ],
         );
     }

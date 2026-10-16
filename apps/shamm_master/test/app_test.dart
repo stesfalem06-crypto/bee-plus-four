@@ -56,15 +56,25 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Type or scan the Seller ID.'), findsOneWidget);
 
+    await t.dragUntilVisible(find.byKey(const Key('sellerId')), find.byType(Scrollable).first, const Offset(0, 300));
+    await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('sellerId')), 'seller id: bee-abc2c246c30520515');
     await t.enterText(find.byKey(const Key('sellerName')), 'Abel');
     await t.pumpAndSettle();
     expect(find.byTooltip('Clear'), findsNWidgets(2));
     await t.tap(find.byKey(const Key('appWINNER')));
     await t.pumpAndSettle();
+    // Default code type: classic RCH1 (every Bee Seller). Pick the 1.2.0 per-app type here.
+    expect(store.format, CodeFormat.rch1);
+    await t.ensureVisible(find.byKey(const Key('codeFormat')));
+    await t.tap(find.byKey(const Key('codeFormat')));
+    await t.pumpAndSettle();
+    await t.tap(find.textContaining(CodeFormat.bee1App.label).last);
+    await t.pumpAndSettle();
     await t.ensureVisible(find.byKey(const Key('amountOther')));
     await t.tap(find.byKey(const Key('amountOther')));
     await t.pumpAndSettle();
+    await t.ensureVisible(find.byKey(const Key('customAmount')));
     await t.enterText(find.byKey(const Key('customAmount')), '25');
     await t.pumpAndSettle();
     await t.ensureVisible(find.byKey(const Key('make')));

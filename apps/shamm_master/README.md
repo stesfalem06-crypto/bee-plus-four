@@ -14,8 +14,13 @@ Bee Seller, Four (`com.four.student`) and Winner. Was `lib/master_main.dart` ins
 - First-launch **step-by-step guide** (menu → Show the guide again). Every text box has a Clear (X) button and
   stays above the keyboard.
 
-## Code format (unchanged, Bee Seller 1.2.0 / Windows 3.2.0)
-`BEE1|WHOLESALE:{FOUR|WINNER}:{n}|{sellerId}|{nonce12}|{hmac64}` — see `lib/grant.dart`.
+## Code format (1.0.1: selectable, default Classic RCH1)
+- **Classic (default)** `RCH1|{sellerId}|{n}|{nonce10}|{timeMs}|{hmac24}` — read by every Bee Seller (Android
+  1.0.0-beta, 1.1.0, 1.1.1, 1.1.2, 1.2.0; Windows). Old sellers have one balance (1.2.0 adds it to Four). Not bound
+  to the seller: anyone holding the code can redeem it once.
+- **BEE1 (Seller 1.1.2+)** `BEE1|WHOLESALE:{n}|{sellerId}|{nonce12}|{hmac64}` — Android 1.1.2+, Flutter com.bee.seller.
+- **Per app (Seller 1.2.0)** `BEE1|WHOLESALE:{FOUR|WINNER}:{n}|…` — Bee Seller 1.2.0 / Windows 3.2.0 only.
+See `lib/grant.dart`, `test/old_seller_compat_test.dart`, `tool/old_seller_kotlin/`.
 
 ## Scanner
 `android/.../ScanActivity.kt` is Four's working CameraX + bundled ML Kit barcode scanner (auto-zoom, torch,
