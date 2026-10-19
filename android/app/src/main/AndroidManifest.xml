@@ -6,10 +6,21 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <!-- 1.0.3 anti-clone: an unlocked 4 must not travel to another phone with Smart Switch, Google backup,
+         adb backup or any device-to-device transfer. allowBackup/fullBackupContent cover Android <= 11;
+         dataExtractionRules (exclude everything for cloud-backup AND device-transfer) covers Android 12+,
+         where allowBackup="false" no longer stops device-to-device transfer. hasFragileUserData="false":
+         uninstall never offers to keep 4's data. The unlock itself is also bound to this phone at runtime
+         (lib/licensing/device_binding.dart), so a copy that slips through still relocks. -->
     <application
         android:label="4"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:hasFragileUserData="false"
+        tools:replace="android:allowBackup">
         <activity
             android:name=".MainActivity"
             android:exported="true"

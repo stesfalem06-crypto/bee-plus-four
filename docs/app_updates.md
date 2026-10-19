@@ -85,7 +85,8 @@ From then on, every update keeps data.
 ## Releasing a new version (each time)
 1. Build with the release key and a higher build number: CI (after the workflow change) or by hand:
    ```
-   flutter build apk --release --build-number=<higher number>      # with FOUR_KEYSTORE… env set
+   flutter build apk --release --build-number=<higher number> --obfuscate --split-debug-info=<private dir>   # with FOUR_KEYSTORE… env set
+   # keep <private dir> (symbols for crash stack traces) off GitHub; --obfuscate is required for release since 1.0.3
    ```
 2. Put `build/app/outputs/flutter-apk/app-release.apk` (universal) on one phone by cable / SHAREit, install it.
 3. From that phone, **Send 4 to a friend**; each receiving phone gets the Home card on its next start.

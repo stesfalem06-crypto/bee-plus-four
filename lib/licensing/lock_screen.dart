@@ -124,6 +124,12 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
     WidgetsBinding.instance.addObserver(this);
     _tilt = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
     _focus.addListener(_onFocus);
+    // 1.0.3: relocked copy (Smart Switch / backup from another phone) or a modified app — say why, kindly.
+    final notice = widget.unlock.notice;
+    if (notice != null) {
+      _message = notice;
+      _messageIsError = true;
+    }
     widget.unlock.deviceId().then((id) {
       if (mounted) setState(() => _id = id);
     });

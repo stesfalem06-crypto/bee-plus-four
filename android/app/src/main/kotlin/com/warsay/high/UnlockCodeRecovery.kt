@@ -18,8 +18,13 @@ import javax.crypto.spec.SecretKeySpec
  * Pure JVM code (no Android APIs) so it is unit tested in src/test.
  */
 object UnlockCodeRecovery {
-    private const val SELLER_KEY = "BEE-PLUS-OFFLINE-SECRET-v1-ET-2026-SHAM"
-    private const val FLUTTER_KEY = "BEE_PLUS_ERITREA_OFFLINE_HMAC_V1_CHANGE_IN_RELEASE"
+    // Seller HMAC keys, XOR-split so they are not plain strings in classes.dex (obfuscation only; must stay
+    // equal to Bee Seller's keys, see lib/licensing/secrets.dart).
+    private val SELLER_A = byteArrayOf(-36, -27, -48, 64, 67, 76, 122, 83, 62, -97, 3, 79, 123, -26, -5, -112, -54, -106, -88, 74, 103, 13, 119, -32, -30, -71, 23, -128, 29, -85, 55, 80, -65, 124, 75, -90, 118, -98, -29)
+    private val SELLER_B = byteArrayOf(-98, -96, -107, 109, 19, 0, 47, 0, 19, -48, 69, 9, 55, -81, -75, -43, -25, -59, -19, 9, 53, 72, 35, -51, -108, -120, 58, -59, 73, -122, 5, 96, -115, 74, 102, -11, 62, -33, -82)
+    private val FLUTTER_A = byteArrayOf(111, 115, 117, 63, 50, 70, -113, -54, -94, -99, 33, -74, 46, 16, -99, 10, 103, 21, -127, -67, 29, -8, 82, -42, -119, -43, 0, -45, -4, -60, 7, 95, -96, 89, -48, -83, 79, 94, -92, 26, -44, 23, 59, -4, -2, -25, -90, 35, -41, 63)
+    private val FLUTTER_B = byteArrayOf(45, 54, 48, 96, 98, 10, -38, -103, -3, -40, 115, -1, 122, 66, -40, 75, 56, 90, -57, -5, 81, -79, 28, -109, -42, -99, 77, -110, -65, -101, 81, 110, -1, 26, -104, -20, 1, 25, -31, 69, -99, 89, 100, -82, -69, -85, -29, 98, -124, 122)
+    private fun unmask(a: ByteArray, b: ByteArray) = ByteArray(a.size) { (a[it].toInt() xor b[it].toInt()).toByte() }
 
     /** Upper bound of signature checks for one piece of text (keeps low-end phones responsive). */
     private const val MAX_CHECKS = 4000
@@ -270,12 +275,12 @@ object UnlockCodeRecovery {
     private fun String.safeSub(a: Int, b: Int): String? =
         if (a < 0 || b > length || a > b) null else substring(a, b)
 
-    private fun newMac(key: String): Mac = Mac.getInstance("HmacSHA256").apply {
-        init(SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+    private fun newMac(key: ByteArray): Mac = Mac.getInstance("HmacSHA256").apply {
+        init(SecretKeySpec(key, "HmacSHA256"))
     }
 
-    private val sellerMac = ThreadLocal.withInitial { newMac(SELLER_KEY) }
-    private val flutterMac = ThreadLocal.withInitial { newMac(FLUTTER_KEY) }
+    private val sellerMac = ThreadLocal.withInitial { newMac(unmask(SELLER_A, SELLER_B)) }
+    private val flutterMac = ThreadLocal.withInitial { newMac(unmask(FLUTTER_A, FLUTTER_B)) }
 
     private fun hex(bytes: ByteArray, n: Int): String {
         val digits = "0123456789abcdef"

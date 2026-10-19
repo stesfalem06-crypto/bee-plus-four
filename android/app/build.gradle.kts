@@ -62,6 +62,10 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            // 1.0.3 hardening: never debuggable; R8 shrinks + renames the Kotlin classes (Flutter default, made explicit).
+            // Dart code: build with --obfuscate --split-debug-info=<dir> (see docs/app_updates.md).
+            isDebuggable = false
+            isMinifyEnabled = true
         }
     }
 }

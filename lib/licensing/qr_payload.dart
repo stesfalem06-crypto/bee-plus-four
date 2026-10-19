@@ -2,26 +2,26 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'secrets.dart';
+
 /// Offline unlock payload signed by Bee Seller. Two legit layouts are accepted:
 ///
 /// Kotlin Bee Seller (bee-plus-ecosystem `core-licensing/QrPayload.createUnlockCode`, 6 fields):
 ///   `BEE1|<deviceId>|<J|H|K|JH…>|<nonce 8 hex>|<timestamp ms>|<hmac-sha256 first 12 bytes, hex>`
-///   key: `BEE-PLUS-OFFLINE-SECRET-v1-ET-2026-SHAM`
+///   key: the Kotlin seller key (kept XOR-masked in `secrets.dart`, never as a plain string)
 ///
 /// Flutter Bee Seller / Windows seller (5 fields):
 ///   `BEE1|HIGHSCHOOL|<deviceId>|<nonce>|<hmac-sha256 hex>`
-///   key: `BEE_HMAC_KEY` dart-define or the shared default.
+///   key: `BEE_HMAC_KEY` dart-define or the shared default (masked in `secrets.dart`).
 ///
 /// [extract] tolerates what real codes pick up on the way: surrounding words ("Give this payload…",
 /// "Copy"), line breaks, spaces, URL-encoded bars (%7C), full-width bars and upper-case hex.
 /// The signature check is unchanged: only codes signed with the seller keys pass.
 class QrPayload {
   static const version = 'BEE1';
-  static const _signingKey = String.fromEnvironment(
-    'BEE_HMAC_KEY',
-    defaultValue: 'BEE_PLUS_ERITREA_OFFLINE_HMAC_V1_CHANGE_IN_RELEASE',
-  );
-  static const _sellerKey = 'BEE-PLUS-OFFLINE-SECRET-v1-ET-2026-SHAM';
+  static const _keyDefine = String.fromEnvironment('BEE_HMAC_KEY');
+  static final String _signingKey = _keyDefine.isNotEmpty ? _keyDefine : FourSecrets.flutterKey();
+  static final String _sellerKey = FourSecrets.sellerKey();
 
   final String packageCode;
   final String deviceId;

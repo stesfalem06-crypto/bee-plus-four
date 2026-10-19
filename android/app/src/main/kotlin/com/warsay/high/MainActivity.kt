@@ -101,6 +101,7 @@ class MainActivity : FlutterFragmentActivity() {
     private val resources = ResourcesChannel(this)
     private val video = FourVideoChannel(this)
     private val updates = UpdateChannel(this)
+    private val guard = GuardChannel(this)
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -219,6 +220,7 @@ class MainActivity : FlutterFragmentActivity() {
         resources.attach(flutterEngine.dartExecutor.binaryMessenger)
         video.attach(flutterEngine)
         updates.attach(flutterEngine.dartExecutor.binaryMessenger)
+        guard.attach(flutterEngine.dartExecutor.binaryMessenger)
         ch.setMethodCallHandler { call, result ->
             try {
                 handle(call, result)

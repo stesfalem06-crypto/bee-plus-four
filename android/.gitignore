@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Kotlin compiler session data (Kotlin Gradle plugin 2.x)
+/.kotlin/
