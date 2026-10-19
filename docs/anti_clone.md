@@ -84,5 +84,19 @@ update strategy that limits this.
 
 ### Session blocks (not stored, next clean start is normal)
 * APK not signed with the 4 release certificate (SHA-256 `F7:08:BC:…:8F:1C`) or `debuggable` → "This copy of 4 was changed".
-* Frida/Xposed/LSPosed/Substrate mapped into the process, or a debugger attached → "turn the tool off".
-* Root and emulators are only reported, never blocked.
+
+### STRICT mode (1.0.5+)
+On launch and on resume, Four runs a cheap native scan (`StrictDetect` / `GuardChannel.env`). If **any** of
+these is found, Four does **not** open: a full-screen page asks the student to uninstall Four (and the tool app
+when one is the cause), then try again:
+
+* **Root:** `su` in common paths, Magisk / KernelSU / APatch paths and mounts, Superuser packages, `test-keys`,
+  `ro.debuggable=1` / `ro.secure=0`, writable `/system`.
+* **Hooking:** Frida (maps, threads, ports 27042/27043), Xposed / LSPosed / EdXposed / Substrate, attached debugger,
+  app `debuggable` flag, signature mismatch (existing check).
+* **Tooling apps installed:** MT Manager, NP Manager, APK Editor, APKTool M, Lucky Patcher (also by app label),
+  GameGuardian, APK extractors, Show Java, App Cloner, Parallel Space / virtual hosts, HappyMod, etc. Package names
+  are stored XOR-masked in the APK; a `<queries>` manifest block lists them (no `QUERY_ALL_PACKAGES`).
+* **Emulator** and **running inside a virtual / clone container** (data-dir path heuristics).
+
+Developer options / USB debugging alone are **not** flagged (normal on Samsung / Tecno / Infinix / Xiaomi stock).

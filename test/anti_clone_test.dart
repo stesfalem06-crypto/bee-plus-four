@@ -56,6 +56,8 @@ class FakeGuard implements DeviceGuard {
   Future<List<String>?> signerDigests() async => [signer];
   @override
   Future<EnvReport> environment() async => env;
+  @override
+  Future<bool> requestUninstall([String? packageName]) async => true;
 }
 
 /// Bee Seller (Kotlin layout, unchanged): BEE1|id|H|nonce|ts|hmac12
@@ -383,10 +385,27 @@ void main() {
       final phone = FakeGuard('a4a4a4a4a4a4a4a4', env: const EnvReport(hookFramework: true));
       final s = await launch(phone, unlocked102(), proof: validProof(_oldId));
       expect(s.isUnlocked, isFalse);
-      expect(s.notice, contains('Frida'));
-      phone.env = const EnvReport(rooted: true, emulator: true); // root / emulator alone are allowed
-      final clean = await launch(phone, await snapshot());
+      expect(s.lastEnv?.strictBlock, isTrue);
+      expect(s.notice, isNotNull);
+    });
+
+    test('STRICT 1.0.5: root, emulator, risky app and virtual container all block', () async {
+      for (final env in [
+        const EnvReport(rooted: true),
+        const EnvReport(emulator: true),
+        const EnvReport(virtualContainer: true),
+        const EnvReport(riskyApps: [RiskyApp('bin.mt.plus', 'MT Manager')]),
+        const EnvReport(debuggerAttached: true),
+      ]) {
+        final phone = FakeGuard('b4b4b4b4b4b4b4b4', env: env);
+        final s = await launch(phone, unlocked102(), proof: validProof(_oldId));
+        expect(s.isUnlocked, isFalse, reason: 'env=$env');
+        expect(s.lastEnv?.strictBlock, isTrue);
+      }
+      // Clean phone still opens
+      final clean = await launch(FakeGuard('c4c4c4c4c4c4c4c4'), unlocked102(), proof: validProof(_oldId));
       expect(clean.isUnlocked, isTrue);
+      expect(clean.lastEnv?.strictBlock, isNot(true));
     });
 
     test('resource gate keeps strong mode with the 1.0.x proof made for the old id', () async {

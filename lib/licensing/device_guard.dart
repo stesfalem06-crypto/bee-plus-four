@@ -97,7 +97,18 @@ class KsMac {
   final String? mac;
 }
 
-/// Soft environment signals (never used alone to relock an unlocked phone).
+/// An installed app that Four treats as a rooting / hacking / APK-dissecting tool (STRICT 1.0.5).
+class RiskyApp {
+  const RiskyApp(this.packageName, this.label);
+  final String packageName;
+  final String label;
+}
+
+/// Environment signals from the native guard.
+///
+/// From 1.0.5 STRICT mode: [strictBlock] is true when root, emulator, hooking, a virtual container, a
+/// debuggable/rebuild, an attached debugger, or a known tooling app is detected. The UI then shows a
+/// full-screen block (not just the lock screen).
 class EnvReport {
   const EnvReport({
     this.debuggable = false,
@@ -105,22 +116,52 @@ class EnvReport {
     this.hookFramework = false,
     this.rooted = false,
     this.emulator = false,
+    this.virtualContainer = false,
+    this.riskyApps = const [],
+    this.reasons = const [],
     this.installer,
   });
-  final bool debuggable, debuggerAttached, hookFramework, rooted, emulator;
+  final bool debuggable, debuggerAttached, hookFramework, rooted, emulator, virtualContainer;
+  final List<RiskyApp> riskyApps;
+  final List<String> reasons;
   final String? installer;
 
   /// Someone is actively instrumenting this process (Frida / Xposed / a debugger on a release build).
   bool get hostile => debuggable || debuggerAttached || hookFramework;
 
+  /// STRICT 1.0.5: do not open the app at all.
+  bool get strictBlock =>
+      rooted || emulator || virtualContainer || hostile || riskyApps.isNotEmpty;
+
   static EnvReport fromMap(Object? m) {
     if (m is! Map) return const EnvReport();
+    final apps = <RiskyApp>[];
+    final raw = m['riskyApps'];
+    if (raw is List) {
+      for (final x in raw) {
+        if (x is Map) {
+          final pkg = x['pkg'] as String? ?? '';
+          final label = x['label'] as String? ?? pkg;
+          if (pkg.isNotEmpty) apps.add(RiskyApp(pkg, label));
+        }
+      }
+    }
+    final reasons = <String>[];
+    final rr = m['reasons'];
+    if (rr is List) {
+      for (final x in rr) {
+        if (x is String && x.isNotEmpty) reasons.add(x);
+      }
+    }
     return EnvReport(
       debuggable: m['debuggable'] == true,
       debuggerAttached: m['debugger'] == true,
       hookFramework: m['hook'] == true,
       rooted: m['rooted'] == true,
       emulator: m['emulator'] == true,
+      virtualContainer: m['virtual'] == true,
+      riskyApps: apps,
+      reasons: reasons,
       installer: m['installer'] as String?,
     );
   }
@@ -138,6 +179,9 @@ abstract class DeviceGuard {
   /// SHA-256 (lower-case hex) of each certificate that signed the installed APK; null = unknown.
   Future<List<String>?> signerDigests();
   Future<EnvReport> environment();
+
+  /// Open the system uninstall dialog for [packageName] (default: Four itself).
+  Future<bool> requestUninstall([String? packageName]);
 }
 
 class ChannelDeviceGuard implements DeviceGuard {
@@ -196,4 +240,10 @@ class ChannelDeviceGuard implements DeviceGuard {
 
   @override
   Future<EnvReport> environment() async => EnvReport.fromMap(await _call<Object?>('env'));
+
+  @override
+  Future<bool> requestUninstall([String? packageName]) async {
+    final r = await _call<Object?>('uninstall', {if (packageName != null) 'pkg': packageName});
+    return r == true;
+  }
 }

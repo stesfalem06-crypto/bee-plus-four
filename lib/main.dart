@@ -3,7 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'high/app.dart';
 import 'high/high.dart';
 import 'high/state/app_state.dart';
+import 'licensing/device_guard.dart';
 import 'licensing/lock_screen.dart';
+import 'licensing/strict_block_screen.dart';
 import 'licensing/unlock_store.dart';
 import 'resources/gate.dart';
 import 'update/updater.dart';
@@ -46,19 +48,49 @@ class _FourRootState extends State<FourRoot> {
   late bool _open = widget.unlock.isUnlocked;
   HighState? _state;
   Object? _err;
-  // back from SHAREit / Bluetooth / the "install unknown apps" setting: look again (debounced inside)
-  late final _life = AppLifecycleListener(onResume: () {
-    if (_open) Updater.instance.autoScan();
-  });
+  EnvReport? _strict;
+  bool _rechecking = false;
+
+  late final _life = AppLifecycleListener(
+    onResume: () {
+      if (_open) Updater.instance.autoScan();
+      _onResumeRecheck();
+    },
+  );
 
   @override
   void initState() {
     super.initState();
     _life;
+    _strict = widget.unlock.lastEnv?.strictBlock == true ? widget.unlock.lastEnv : null;
     widget.loading.then((s) {
       if (mounted) setState(() => _state = s);
     }, onError: (Object e) {
       if (mounted) setState(() => _err = e);
+    });
+  }
+
+  Future<void> _onResumeRecheck() async {
+    if (_rechecking) return;
+    _rechecking = true;
+    try {
+      final blocked = await widget.unlock.recheckEnvironment();
+      if (!mounted) return;
+      setState(() {
+        _strict = blocked ? widget.unlock.lastEnv : null;
+        if (blocked) _open = false;
+      });
+    } finally {
+      _rechecking = false;
+    }
+  }
+
+  Future<void> _checkAgain() async {
+    final blocked = await widget.unlock.recheckEnvironment();
+    if (!mounted) return;
+    setState(() {
+      _strict = blocked ? widget.unlock.lastEnv : null;
+      if (!blocked && widget.unlock.isUnlocked) _open = true;
     });
   }
 
@@ -76,16 +108,30 @@ class _FourRootState extends State<FourRoot> {
 
   @override
   Widget build(BuildContext context) {
+    final strict = _strict;
     return WidgetsApp(
       title: '4',
       color: const Color(0xFFE88A6E),
       debugShowCheckedModeBanner: false,
       pageRouteBuilder: <T>(RouteSettings s, WidgetBuilder b) => PageRouteBuilder<T>(settings: s, pageBuilder: (c, _, _) => b(c)),
-      home: !_open
-          ? LockScreen(unlock: widget.unlock, onUnlocked: _unlocked)
-          : _state != null
-              ? HighScreen(state: _state)
-              : OpeningPane(err: _err, onRetry: _err == null ? null : _retry),
+      home: strict != null && strict.strictBlock
+          ? StrictBlockScreen(
+              env: strict,
+              onUninstallFour: () {
+                widget.unlock.requestUninstallFour();
+              },
+              onUninstallTool: strict.riskyApps.isEmpty
+                  ? null
+                  : (app) {
+                      widget.unlock.requestUninstallApp(app.packageName);
+                    },
+              onCheckAgain: _checkAgain,
+            )
+          : !_open
+              ? LockScreen(unlock: widget.unlock, onUnlocked: _unlocked)
+              : _state != null
+                  ? HighScreen(state: _state)
+                  : OpeningPane(err: _err, onRetry: _err == null ? null : _retry),
     );
   }
 

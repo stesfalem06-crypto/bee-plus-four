@@ -51,3 +51,4 @@ app.*.map.json
 /assets/c/*
 !/assets/c/.keep
 /.four_content_define.json
+android/key.properties

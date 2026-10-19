@@ -2,6 +2,8 @@ package com.warsay.high
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
@@ -37,7 +39,8 @@ import javax.crypto.spec.PSource
  *  - probe   what flutter_secure_storage of 1.0.0–1.0.2 left behind, read WITHOUT decrypting it
  *  - ksMac   HMAC-SHA256 with a non-exportable Android Keystore key (created on demand)
  *  - signer  SHA-256 of the APK signing certificate(s)
- *  - env     soft signals: debuggable, debugger, Frida/Xposed in this process, root, emulator, installer
+ *  - env     STRICT environment scan (root, hook, emulator, virtual container, risky apps)
+ *  - uninstall  open system uninstall dialog for a package (default: ourselves)
  */
 class GuardChannel(private val activity: Activity) {
     companion object {
@@ -78,6 +81,7 @@ class GuardChannel(private val activity: Activity) {
                         "ksMac" -> ksMac(call.argument<String>("data") ?: "", call.argument<Boolean>("create") ?: false)
                         "signer" -> signers()
                         "env" -> env()
+                        "uninstall" -> uninstall(call.argument<String>("pkg"))
                         else -> NOT_IMPLEMENTED
                     }
                 } catch (e: Throwable) {
@@ -195,47 +199,91 @@ class GuardChannel(private val activity: Activity) {
 
     private fun env(): Map<String, Any?> {
         val debuggable = (activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val debugger = Debug.isDebuggerConnected() || Debug.waitingForDebugger()
+        val props = HashMap<String, String>()
+        prop("ro.debuggable")?.let { props["ro.debuggable"] = it }
+        prop("ro.secure")?.let { props["ro.secure"] = it }
+        // Xposed class present?
+        try {
+            Class.forName("de.robv.android.xposed.XposedBridge")
+            props["four.xposed"] = "1"
+        } catch (_: Throwable) {}
+        try {
+            Class.forName("com.android.internal.os.XposedBridge")
+            props["four.xposed"] = "1"
+        } catch (_: Throwable) {}
+
+        val build = StrictDetect.BuildBits(
+            tags = Build.TAGS,
+            fingerprint = Build.FINGERPRINT ?: "",
+            model = Build.MODEL ?: "",
+            hardware = Build.HARDWARE ?: "",
+            product = Build.PRODUCT ?: "",
+            manufacturer = Build.MANUFACTURER ?: "",
+            brand = Build.BRAND ?: "",
+            device = Build.DEVICE ?: "",
+            board = Build.BOARD ?: "",
+            dataDir = activity.applicationInfo.dataDir ?: "",
+            debuggableFlag = debuggable,
+            debuggerAttached = debugger,
+            props = props,
+        )
+        val apps = StrictDetect.Apps {
+            val pm = activity.packageManager
+            val out = ArrayList<Pair<String, String>>()
+            for (pkg in StrictDetect.knownPackages()) {
+                try {
+                    val ai = pm.getApplicationInfo(pkg, 0)
+                    val label = try { pm.getApplicationLabel(ai).toString() } catch (_: Throwable) { pkg }
+                    out.add(pkg to label)
+                } catch (_: Throwable) {}
+            }
+            // Also scan launched apps' labels for Lucky Patcher randomised packages (limited set via <queries>)
+            // PackageManager.getInstalledApplications without QUERY_ALL_PACKAGES only returns launcher + queried.
+            try {
+                @Suppress("DEPRECATION")
+                val list = pm.getInstalledApplications(0)
+                val known = StrictDetect.knownPackages().toHashSet()
+                for (ai in list) {
+                    if (ai.packageName in known) continue
+                    val label = try { pm.getApplicationLabel(ai).toString() } catch (_: Throwable) { continue }
+                    out.add(ai.packageName to label)
+                }
+            } catch (_: Throwable) {}
+            out
+        }
+        val r = StrictDetect.scan(StrictDetect.RealFs(), apps, build)
         return mapOf(
-            "debuggable" to debuggable,
-            "debugger" to (Debug.isDebuggerConnected() || Debug.waitingForDebugger()),
-            "hook" to hookFramework(),
-            "rooted" to rooted(),
-            "emulator" to emulator(),
+            "debuggable" to r.debuggable,
+            "debugger" to r.debugger,
+            "hook" to r.hook,
+            "rooted" to r.rooted,
+            "emulator" to r.emulator,
+            "virtual" to r.virtual,
+            "blocked" to r.blocked,
             "installer" to installer(),
+            "reasons" to r.reasons,
+            "riskyApps" to r.riskyApps.map { mapOf("pkg" to it.first, "label" to it.second) },
         )
     }
 
-    /** Frida (agent / gadget) or Xposed / LSPosed / Substrate mapped into THIS process. */
-    private fun hookFramework(): Boolean {
-        val words = listOf("frida", "gum-js", "gadget", "xposed", "lsposed", "substrate")
-        try {
-            File("/proc/self/maps").useLines { lines ->
-                if (lines.any { l -> val s = l.lowercase(); words.any { s.contains(it) } }) return true
-            }
-        } catch (_: Throwable) {}
-        try {
-            File("/proc/self/task").listFiles()?.forEach { t ->
-                val name = try { File(t, "comm").readText().trim().lowercase() } catch (_: Throwable) { "" }
-                if (name.startsWith("gum-js") || name.contains("frida")) return true
-            }
-        } catch (_: Throwable) {}
+    private fun prop(name: String): String? = try {
+        val cl = Class.forName("android.os.SystemProperties")
+        cl.getMethod("get", String::class.java).invoke(null, name) as? String
+    } catch (_: Throwable) { null }
+
+    /** Open the system "uninstall this app?" dialog. Returns true if the activity was started. */
+    private fun uninstall(pkg: String?): Boolean {
+        val target = pkg?.takeIf { it.isNotBlank() } ?: activity.packageName
         return try {
-            Class.forName("de.robv.android.xposed.XposedBridge"); true
-        } catch (_: Throwable) { false }
-    }
-
-    private fun rooted(): Boolean {
-        if (Build.TAGS?.contains("test-keys") == true) return true
-        val paths = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su", "/system/sbin/su", "/vendor/bin/su", "/data/adb/magisk", "/system/app/Superuser.apk")
-        return paths.any { try { File(it).exists() } catch (_: Throwable) { false } }
-    }
-
-    private fun emulator(): Boolean {
-        val f = Build.FINGERPRINT.lowercase()
-        return f.startsWith("generic") || f.contains("emulator") || f.contains("sdk_gphone") ||
-            Build.MODEL.contains("Emulator") || Build.MODEL.contains("Android SDK built for") ||
-            Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains("ranchu") ||
-            Build.PRODUCT.contains("sdk") || Build.MANUFACTURER.contains("Genymotion")
+            val i = Intent(Intent.ACTION_DELETE, Uri.parse("package:$target"))
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            activity.startActivity(i)
+            true
+        } catch (e: Throwable) {
+            HighLog.w("guard uninstall failed: ${e.javaClass.simpleName}")
+            false
+        }
     }
 
     @Suppress("DEPRECATION")

@@ -244,22 +244,50 @@ class UnlockStore {
     }
   }
 
+  /// Last STRICT environment report (session-cached; refreshed by [recheckEnvironment]).
+  EnvReport? lastEnv;
+
   Future<void> _checkIntegrity() async {
     final digests = await _guard.signerDigests();
     final want = _hex(FourSecrets.releaseSigner());
     if (digests != null && digests.isNotEmpty && !digests.contains(want)) {
       blockedReason = 'This copy of 4 was changed by someone (it is not signed by the 4 team), so it cannot be '
           'unlocked. Get the real 4 from a Bee seller.';
+      // Still scan the environment so the STRICT screen can show tool uninstall buttons.
+    }
+    final env = lastEnv = await _guard.environment();
+    if (env.strictBlock) {
+      // Dedicated full-screen UI (StrictBlockScreen) is shown by main.dart; keep a short notice too.
+      blockedReason ??= 'This phone has a rooting or hacking tool, so Four cannot open.';
       return;
     }
-    final env = await _guard.environment();
+    if (blockedReason != null) return;
     if (env.debuggable) {
       blockedReason = 'This copy of 4 was rebuilt for debugging, so it cannot be unlocked. Get the real 4 from a Bee seller.';
-    } else if (env.hookFramework || env.debuggerAttached) {
-      blockedReason = '4 cannot open while a hacking or debugging tool (Frida, Xposed, debugger) is running on this phone. '
-          'Turn it off and open 4 again.';
     }
   }
+
+  /// Cheap re-scan (e.g. on resume). Updates [lastEnv] / [blockedReason]. Returns whether STRICT still blocks.
+  Future<bool> recheckEnvironment() async {
+    if (!_enforceIntegrity) return false;
+    try {
+      final env = lastEnv = await _guard.environment();
+      if (env.strictBlock) {
+        blockedReason = 'This phone has a rooting or hacking tool, so Four cannot open.';
+        return true;
+      }
+      // Cleared: drop a previous session-only STRICT reason (keep signature-mismatch reasons).
+      if (blockedReason != null && blockedReason!.contains('rooting or hacking')) {
+        blockedReason = null;
+      }
+      return false;
+    } catch (_) {
+      return lastEnv?.strictBlock ?? false;
+    }
+  }
+
+  Future<bool> requestUninstallFour() => _guard.requestUninstall();
+  Future<bool> requestUninstallApp(String packageName) => _guard.requestUninstall(packageName);
 
   Future<void> _save() async {
     final s = _state;
