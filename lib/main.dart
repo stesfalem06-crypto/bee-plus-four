@@ -78,20 +78,33 @@ class _FourRootState extends State<FourRoot> {
       if (!mounted) return;
       setState(() {
         _strict = blocked ? widget.unlock.lastEnv : null;
-        if (blocked) _open = false;
+        if (blocked) {
+          _open = false;
+        } else if (!_open && widget.unlock.isUnlocked) {
+          _open = true; // 1.0.6: a cleared block re-opens an unlocked phone (it used to fall back to the lock screen)
+        }
       });
+    } catch (_) {
+      // 1.0.6: a failed re-scan never crashes or changes what is on screen
     } finally {
       _rechecking = false;
     }
   }
 
   Future<void> _checkAgain() async {
-    final blocked = await widget.unlock.recheckEnvironment();
-    if (!mounted) return;
-    setState(() {
-      _strict = blocked ? widget.unlock.lastEnv : null;
-      if (!blocked && widget.unlock.isUnlocked) _open = true;
-    });
+    if (_rechecking) return; // 1.0.6: repeated taps / a resume during the scan run one scan
+    _rechecking = true;
+    try {
+      final blocked = await widget.unlock.recheckEnvironment();
+      if (!mounted) return;
+      setState(() {
+        _strict = blocked ? widget.unlock.lastEnv : null;
+        if (!blocked && widget.unlock.isUnlocked) _open = true;
+      });
+    } catch (_) {
+    } finally {
+      _rechecking = false;
+    }
   }
 
   Future<void> _unlocked() async {

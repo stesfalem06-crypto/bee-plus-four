@@ -23,7 +23,10 @@ class CoachBook {
   static const asset = 'assets/high/coach/topics.json';
   static Future<CoachBook>? _f;
   static CoachBook? cached;
-  static Future<CoachBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
+  static Future<CoachBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s), onError: (Object e, StackTrace st) {
+        _f = null; // 1.0.6: retry after a failed read
+        Error.throwWithStackTrace(e, st);
+      });
 
   static CoachBook parse(String s) {
     final o = jsonDecode(s) as Map<String, dynamic>;

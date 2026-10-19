@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:high/content/content_vault.dart';
+import 'package:high/high/app.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   final kf = File(Platform.environment['FOUR_CONTENT_KEY_FILE'] ?? '/workspace/keys/four/content_key.bin');
@@ -17,5 +18,6 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   } else {
     ContentVault.instance.debugUsePlainFiles(Directory.current.path);
   }
+  HighShellState.dedupPushes = false; // 1.0.6 double-tap guard: tests push the same page type back to back
   await testMain();
 }

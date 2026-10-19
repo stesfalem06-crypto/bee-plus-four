@@ -61,7 +61,10 @@ class QuoteBook {
   static QuoteBook? cached;
 
   /// read once, then kept (the file is ~15 KB)
-  static Future<QuoteBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
+  static Future<QuoteBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s), onError: (Object e, StackTrace st) {
+        _f = null; // 1.0.6: retry after a failed read
+        Error.throwWithStackTrace(e, st);
+      });
 
   static QuoteBook parse(String s) {
     final o = jsonDecode(s) as Map<String, dynamic>;

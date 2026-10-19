@@ -95,7 +95,7 @@ class TutorIndex {
   static Future<TutorIndex> load([AssetBundle? bundle]) => _load ??= () async {
     final data = await (bundle ?? contentBundle).load(asset);
     return offThread(decode, data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
-  }();
+  }().then((v) => v, onError: (Object e, StackTrace st) { _load = null; Error.throwWithStackTrace(e, st); });
 
   static const conceptsAsset = 'assets/high/tutor/tutor_concepts.json';
   static Future<Map<String, (String, String)>>? _concepts;
@@ -105,7 +105,7 @@ class TutorIndex {
   static Future<Map<String, (String, String)>> concepts([AssetBundle? bundle]) => _concepts ??= () async {
     final raw = await (bundle ?? contentBundle).loadString(conceptsAsset, cache: false);
     return offThread(parseConcepts, raw);
-  }();
+  }().then((v) => v, onError: (Object e, StackTrace st) { _concepts = null; Error.throwWithStackTrace(e, st); });
 
   static Map<String, (String, String)> parseConcepts(String raw) {
     final m = (jsonDecode(raw) as Map)['concepts'] as Map;

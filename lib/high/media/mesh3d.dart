@@ -58,7 +58,10 @@ class Mesh {
   }
 
   static final Map<String, Future<Mesh>> _cache = {};
-  static Future<Mesh> load(String asset, [AssetBundle? b]) => _cache[asset] ??= (b ?? contentBundle).load(asset).then(parse);
+  static Future<Mesh> load(String asset, [AssetBundle? b]) => _cache[asset] ??= (b ?? contentBundle).load(asset).then(parse, onError: (Object e, StackTrace st) {
+    _cache.remove(asset); // 1.0.6: a failed read is retried next time instead of staying broken for the app run
+    Error.throwWithStackTrace(e, st);
+  });
 }
 
 class MeshPainter extends CustomPainter {

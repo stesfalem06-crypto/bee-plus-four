@@ -140,8 +140,9 @@ class EnvReport {
     if (raw is List) {
       for (final x in raw) {
         if (x is Map) {
-          final pkg = x['pkg'] as String? ?? '';
-          final label = x['label'] as String? ?? pkg;
+          // 1.0.6: tolerate odd values from the channel (never throw out of a guard report)
+          final pkg = x['pkg'] is String ? x['pkg'] as String : '';
+          final label = x['label'] is String ? x['label'] as String : pkg;
           if (pkg.isNotEmpty) apps.add(RiskyApp(pkg, label));
         }
       }
@@ -162,7 +163,7 @@ class EnvReport {
       virtualContainer: m['virtual'] == true,
       riskyApps: apps,
       reasons: reasons,
-      installer: m['installer'] as String?,
+      installer: m['installer'] is String ? m['installer'] as String : null,
     );
   }
 }

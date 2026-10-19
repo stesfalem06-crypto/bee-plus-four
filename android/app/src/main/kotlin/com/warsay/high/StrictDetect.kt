@@ -94,6 +94,9 @@ object StrictDetect {
 
     fun scan(fs: Fs, apps: Apps, build: BuildBits): Report {
         val reasons = ArrayList<String>()
+        // 1.0.6: one PackageManager pass per scan (root + risky-app checks used to query it three times)
+        val once = apps.installed()
+        val apps = Apps { once }
         val rootHits = root(fs, apps, build, reasons)
         val hookHits = hook(fs, build, reasons)
         val emu = emulator(build, reasons)
@@ -133,8 +136,11 @@ object StrictDetect {
 
     fun root(fs: Fs, apps: Apps, build: BuildBits, reasons: MutableList<String>): Boolean {
         var hit = false
+        // 1.0.6: test-keys, ro.debuggable=1 and ro.secure=0 ship on many stock budget-phone ROMs
+        // (Tecno / Itel / no-name MTK). Alone they are NOT root: they only count next to a real root finding.
+        var soft = false
         if (build.tags?.contains("test-keys") == true) {
-            reasons.add("root:test-keys"); hit = true
+            reasons.add("soft:test-keys"); soft = true
         }
         for (p in SU_PATHS) {
             if (fs.exists(p)) {
@@ -158,8 +164,8 @@ object StrictDetect {
         // Props: do NOT flag merely "ADB enabled" / developer options — only insecure build props.
         val roDeb = build.props["ro.debuggable"]
         val roSec = build.props["ro.secure"]
-        if (roDeb == "1") { reasons.add("root:ro.debuggable"); hit = true }
-        if (roSec == "0") { reasons.add("root:ro.secure"); hit = true }
+        if (roDeb == "1") { reasons.add("soft:ro.debuggable"); soft = true }
+        if (roSec == "0") { reasons.add("soft:ro.secure"); soft = true }
         // Writable /system (rw mount)
         for (line in mounts.lineSequence()) {
             val parts = line.split(Regex("\\s+"))
@@ -184,6 +190,7 @@ object StrictDetect {
                 reasons.add("root:label:$pkg"); hit = true
             }
         }
+        if (hit && soft) reasons.add("root:insecure-build")
         return hit
     }
 
@@ -193,7 +200,8 @@ object StrictDetect {
         "frida", "gum-js", "frida-agent", "frida-gadget", "libfrida",
         "xposed", "lsposed", "edxposed", "substrate", "libsubstrate",
     )
-    private val THREAD_WORDS = listOf("gum-js", "gmain", "gdbus", "frida", "pool-frida")
+    // 1.0.6: "gmain" / "gdbus" are plain GLib thread names (some vendor libraries start them); only Frida's own names
+    private val THREAD_WORDS = listOf("gum-js", "frida", "pool-frida")
 
     fun hook(fs: Fs, build: BuildBits, reasons: MutableList<String>): Boolean {
         var hit = false
@@ -229,17 +237,24 @@ object StrictDetect {
 
     fun emulator(build: BuildBits, reasons: MutableList<String>): Boolean {
         val f = build.fingerprint.lowercase()
-        val hit = f.startsWith("generic") || f.contains("emulator") || f.contains("sdk_gphone") ||
-            f.contains("unknown") && build.model.contains("sdk", ignoreCase = true) ||
+        // 1.0.6: strong markers block on their own; the "generic" / "sdk" names some no-name MTK ROMs also carry only
+        // count when two of them agree
+        val strong = f.contains("emulator") || f.contains("sdk_gphone") ||
             build.model.contains("Emulator") || build.model.contains("Android SDK built for") ||
             build.hardware.contains("goldfish") || build.hardware.contains("ranchu") ||
             build.hardware.contains("vbox86") ||
-            build.product.contains("sdk") || build.product.contains("emulator") ||
+            build.product.contains("emulator") ||
             build.product.contains("google_sdk") || build.product.contains("sdk_gphone") ||
             build.manufacturer.contains("Genymotion", ignoreCase = true) ||
-            build.brand.startsWith("generic") && build.device.startsWith("generic") ||
             build.board.contains("nox", ignoreCase = true) ||
             build.product.contains("nox", ignoreCase = true)
+        val weak = listOf(
+            f.startsWith("generic"),
+            f.contains("unknown") && build.model.contains("sdk", ignoreCase = true),
+            build.product.contains("sdk"),
+            build.brand.startsWith("generic") && build.device.startsWith("generic"),
+        ).count { it }
+        val hit = strong || weak >= 2
         if (hit) reasons.add("emulator")
         return hit
     }
@@ -257,7 +272,9 @@ object StrictDetect {
         val d = build.dataDir
         if (d.isEmpty()) return false
         // Normal: /data/user/0/com.four.student or /data/data/com.four.student
-        val normal = d.startsWith("/data/user/") || d.startsWith("/data/data/com.four.student")
+        // 1.0.6: an app moved to an SD card formatted as internal storage lives under /mnt/expand/<uuid>/user/<n>/
+        val normal = d.startsWith("/data/user/") || d.startsWith("/data/user_de/") || d.startsWith("/data/data/com.four.student") ||
+            Regex("^/mnt/expand/[^/]+/user/\\d+/").containsMatchIn(d)
         if (normal && VIRT_MARKERS.none { d.contains(it, ignoreCase = true) }) return false
         for (m in VIRT_MARKERS) {
             if (d.contains(m, ignoreCase = true)) {

@@ -27,6 +27,7 @@ class TutorWorker {
     try {
       return await (_one ??= _start(bundle));
     } catch (_) {
+      _one = null; // 1.0.6: a failed start (content not readable yet) is tried again on the next search
       return null;
     }
   }

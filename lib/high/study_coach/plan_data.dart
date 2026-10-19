@@ -13,7 +13,10 @@ class PlanBook {
   static Future<PlanBook>? _f;
   static PlanBook? cached;
   static Future<PlanBook> load([AssetBundle? bundle]) =>
-      _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
+      _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s), onError: (Object e, StackTrace st) {
+        _f = null; // 1.0.6: retry after a failed read
+        Error.throwWithStackTrace(e, st);
+      });
   static PlanBook parse(String s) => PlanBook(jsonDecode(s) as Map<String, dynamic>);
 
   Map<String, dynamic> get checkin => raw['checkin'] as Map<String, dynamic>;

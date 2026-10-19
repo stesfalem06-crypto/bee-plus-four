@@ -77,21 +77,46 @@ class StrictDetectTest {
     }
 
     @Test
-    fun testKeys_flagsRoot() {
+    fun testKeys_aloneIsNotRoot_1_0_6() {
+        // stock budget ROMs (Tecno / Itel / MTK) ship test-keys: must not block a normal phone
         val r = StrictDetect.scan(MemFs(), MemApps(emptyList()), cleanBuild().copy(tags = "test-keys"))
-        assertTrue(r.rooted)
+        assertFalse(r.rooted)
+        assertFalse(r.blocked)
     }
 
     @Test
-    fun roDebuggable_flagsRoot_butNotAdbAlone() {
-        val withDeb = StrictDetect.scan(
-            MemFs(), MemApps(emptyList()),
-            cleanBuild().copy(props = mapOf("ro.debuggable" to "1")),
-        )
-        assertTrue(withDeb.rooted)
-        // Developer options / ADB are NOT in our props — clean stays clean
+    fun insecureProps_aloneAreNotRoot_butCountWithSu() {
+        val props = mapOf("ro.debuggable" to "1", "ro.secure" to "0")
+        val alone = StrictDetect.scan(MemFs(), MemApps(emptyList()), cleanBuild().copy(props = props))
+        assertFalse(alone.rooted)
+        val fs = MemFs().also { it.put("/system/xbin/su") }
+        val withSu = StrictDetect.scan(fs, MemApps(emptyList()), cleanBuild().copy(props = props))
+        assertTrue(withSu.rooted)
+        assertTrue(withSu.reasons.contains("root:insecure-build"))
         val clean = StrictDetect.scan(MemFs(), MemApps(emptyList()), cleanBuild())
         assertFalse(clean.rooted)
+    }
+
+    @Test
+    fun glibThreadNames_areNotFrida() {
+        val fs = MemFs().also {
+            it.putDir("/proc/self/task", listOf("1", "2"))
+            it.put("/proc/self/task/2/comm", "gmain")
+        }
+        assertFalse(StrictDetect.scan(fs, MemApps(emptyList()), cleanBuild()).hook)
+    }
+
+    @Test
+    fun genericNoNameRom_singleWeakSignal_isNotEmulator() {
+        val r = StrictDetect.scan(MemFs(), MemApps(emptyList()), cleanBuild().copy(fingerprint = "generic/x6/x6:11/RP1A/1:user/release-keys"))
+        assertFalse(r.emulator)
+    }
+
+    @Test
+    fun adoptableStorage_isNotVirtualContainer() {
+        val r = StrictDetect.scan(MemFs(), MemApps(emptyList()), cleanBuild(dataDir = "/mnt/expand/1234-abcd/user/0/com.four.student"))
+        assertFalse(r.virtual)
+        assertFalse(r.blocked)
     }
 
     @Test

@@ -126,8 +126,28 @@ class HighShellState extends State<HighShell> implements HighNav {
   /// tabs visited so far: their pages stay mounted (offstage) so scroll / filters survive tab switches
   final Set<HighTab> _visited = {};
 
+  /// 1.0.6: a focused field on the page being left (the Tutor box) kept the keyboard up over the next page, which then
+  /// re-laid out when the keyboard closed (and the offstage page fought for scroll) — the "glitch" after a search.
+  static void _dropFocus() => FocusManager.instance.primaryFocus?.unfocus();
+
+  /// 1.0.6: a double tap on a result pushed the same page twice; ignore a push of the same page type within 600 ms
+  /// test/flutter_test_config.dart turns it off (tests push the same page type back to back on purpose); the Tutor
+  /// flow test turns it back on
+  static bool dedupPushes = true;
+  Type? _lastPushType;
+  DateTime _lastPushAt = DateTime(0);
+  bool _dupPush(Object w) {
+    if (!dedupPushes) return false;
+    final now = DateTime.now(), ty = w.runtimeType;
+    final dup = ty == _lastPushType && now.difference(_lastPushAt) < const Duration(milliseconds: 600);
+    _lastPushType = ty;
+    _lastPushAt = now;
+    return dup;
+  }
+
   @override
   void tab(HighTab t) {
+    _dropFocus();
     setState(() {
       if (t == _tab && _stack.isEmpty) _tabGen[t] = (_tabGen[t] ?? 0) + 1;
       _stack.clear();
@@ -137,22 +157,29 @@ class HighShellState extends State<HighShell> implements HighNav {
   final Map<HighTab, int> _tabGen = {};
 
   @override
-  void push(Widget page) => setState(() {
-    _stack.add(KeyedSubtree(key: ValueKey(++_gen), child: page));
-  });
+  void push(Widget page) {
+    if (!mounted || _dupPush(page)) return;
+    _dropFocus();
+    setState(() => _stack.add(KeyedSubtree(key: ValueKey(++_gen), child: page)));
+  }
 
   @override
-  void open(String key, Widget Function() build) => setState(() {
+  void open(String key, Widget Function() build) {
+    if (!mounted) return;
+    _dropFocus();
+    setState(() {
     final k = ValueKey('r:$key'), i = _stack.indexWhere((w) => w.key == k);
     if (i >= 0) {
       _stack.removeRange(i + 1, _stack.length); // already open below: go back to it instead of stacking a copy
     } else {
       _stack.add(KeyedSubtree(key: k, child: build()));
     }
-  });
+    });
+  }
 
   @override
   void back() {
+    _dropFocus();
     setState(() {
       if (_sheets.isNotEmpty) {
         _sheets.removeLast();

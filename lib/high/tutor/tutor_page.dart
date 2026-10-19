@@ -53,7 +53,9 @@ class TutorPage extends StatefulWidget {
 class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
   final _c = TextEditingController();
   final _sc = ScrollController();
-  late final Future<TutorIndex> _ix = TutorIndex.load();
+  /// kept by TutorIndex once loaded; 1.0.6: a failed read (content blob missing / not readable yet) is retried on the
+  /// next question instead of every answer saying "not found" until the app restarts
+  Future<TutorIndex> get _ix => TutorIndex.load();
   TutorIndex? _ready;
   bool _filters = false, _kbOpen = false;
 
@@ -89,6 +91,12 @@ class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     if (!mounted) return;
+    // 1.0.6: only while this tab is on screen. An offstage Tutor (a lesson opened from an answer) used to jump its chat
+    // to the end whenever the keyboard moved, so coming back lost the answer the student was reading.
+    if (!TickerMode.valuesOf(context).enabled) {
+      _kbOpen = false;
+      return;
+    }
     final open = (View.maybeOf(context)?.viewInsets.bottom ?? 0) > 0;
     if (open == _kbOpen) return;
     _kbOpen = open;
@@ -163,9 +171,16 @@ class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
     focusGrade: _focusOn && _grade == null ? _focus?.grade : null,
   );
 
+  /// 1.0.6: the question being answered (a double tap on a chip / send asked it twice and stacked two answers)
+  String? _asking;
+
   Future<void> _ask(String t) async {
     t = t.trim();
-    if (t.isEmpty) return;
+    if (t.isEmpty || !mounted || _asking == t) return;
+    _asking = t;
+    // close the keyboard first: the chat gets its full height before the answer arrives, instead of re-laying out
+    // (and jumping) while the student is already tapping the results
+    FocusManager.instance.primaryFocus?.unfocus();
     final s = Kit.of(context).s;
     final m = _Msg.bot(null);
     _deb?.cancel();
@@ -180,6 +195,7 @@ class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
     TutorAnswer a;
     try {
       final ix = await _ix;
+      if (_ready == null && mounted) setState(() => _ready = ix);
       final w = s.repo.examVersion, v = s.repo.exerciseVersion;
       final wk = await TutorWorker.get();
       a = await TutorAnswerer(ix, s.repo, s.notesRepo, search: workerSearch(wk, ix)).answer(t, _scope);
@@ -188,6 +204,7 @@ class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
     } catch (_) {
       a = TutorAnswer(query: t, refuse: true);
     }
+    if (_asking == t) _asking = null;
     if (!mounted) return;
     setState(() => m.ans = a);
     WidgetsBinding.instance.addPostFrameCallback((_) => _toAnswer(m));
@@ -267,7 +284,8 @@ class _TutorPageState extends State<TutorPage> with WidgetsBindingObserver {
             ),
           )
         else if (m.ans == null)
-          bot(Text(_ready == null ? 'Opening my notes… (first time only)' : 'Looking it up…', style: ts(13.5, w700, p.ink2)))
+          // same key as the answer: the bubble is updated in place (no remount / blank frame when the answer lands)
+          bot(Text(_ready == null ? 'Opening my notes… (first time only)' : 'Looking it up…', style: ts(13.5, w700, p.ink2)), key: m.key)
         else
           bot(
             _AnswerView(a: m.ans!, onNotes: _openNotes, onAsk: _ask),
