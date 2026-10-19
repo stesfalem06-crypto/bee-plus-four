@@ -1,0 +1,50 @@
+# Bundled study content that tool/encrypt_assets.py encrypts into assets/c/ (one entry per line, like the old
+# pubspec list: a folder ending in / means the files directly inside it, not sub-folders; a plain path is one file).
+# These sources stay in git but are NOT listed in pubspec.yaml any more, so they never go into the APK in plain form.
+# Not here on purpose: assets/high/fonts (fonts) and assets/high/howto (the app's how-to video, played natively).
+assets/high/exams/
+assets/high/exams/matric_lazy/
+assets/high/exams/matric_lazy/subjects/
+assets/high/exams/media/
+assets/high/exercises/
+assets/high/exercises/school/
+assets/high/exercises/drive_chapters/
+assets/high/exercises/drive_meta/
+assets/high/codes.json
+assets/high/motivation/
+assets/high/coach/
+assets/high/tutor/
+assets/high/media/
+assets/high/media/img/
+assets/high/media/models/
+assets/high/notes/
+assets/high/notes/notes/
+assets/high/notes/split/
+assets/high/notes/notes/svg/agriculture_11/
+assets/high/notes/notes/svg/agriculture_12/
+assets/high/notes/notes/svg/agri_11/
+assets/high/notes/notes/svg/agri_12/
+assets/high/notes/notes/svg/biology_10/
+assets/high/notes/notes/svg/biology_11/
+assets/high/notes/notes/svg/biology_12/
+assets/high/notes/notes/svg/biology_9/
+assets/high/notes/notes/svg/business_economics_10/
+assets/high/notes/notes/svg/business_economics_11/
+assets/high/notes/notes/svg/business_economics_12/
+assets/high/notes/notes/svg/chemistry_10/
+assets/high/notes/notes/svg/chemistry_11/
+assets/high/notes/notes/svg/chemistry_12/
+assets/high/notes/notes/svg/chemistry_9/
+assets/high/notes/notes/svg/geography_10/
+assets/high/notes/notes/svg/geography_11/
+assets/high/notes/notes/svg/geography_12/
+assets/high/notes/notes/svg/geography_9/
+assets/high/notes/notes/svg/history_12/
+assets/high/notes/notes/svg/mathematics_9/
+assets/high/notes/notes/svg/mathematics_10/
+assets/high/notes/notes/svg/mathematics_11/
+assets/high/notes/notes/svg/mathematics_12/
+assets/high/notes/notes/svg/physics_10/
+assets/high/notes/notes/svg/physics_11/
+assets/high/notes/notes/svg/physics_12/
+assets/high/notes/notes/svg/physics_9/

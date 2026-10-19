@@ -1,6 +1,7 @@
 // Question cards of the exam player (web cardHTML / matchCardHTML / extrasHTML), plus natively rendered reading passages,
 // stem tables and answer tables (the web app does not render those).
 import 'package:flutter/widgets.dart';
+import 'package:high/content/content_vault.dart';
 
 import '../data/models.dart';
 import '../screens/toast.dart';
@@ -441,7 +442,7 @@ class Fig extends StatelessWidget {
         child: RichTx('🖼 Figure: $alt', style: ts(12.5, w700, p.ink2, height: 1.45)),
       );
     }
-    final img = Image.asset(r.mediaAsset(path), fit: BoxFit.contain, semanticLabel: alt, cacheWidth: 720, filterQuality: FilterQuality.medium);
+    final img = Image.asset(bundle: contentBundle, r.mediaAsset(path), fit: BoxFit.contain, semanticLabel: alt, cacheWidth: 720, filterQuality: FilterQuality.medium);
     final bg = p.dark ? const Color(0xFFF4EEE6) : white;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -455,7 +456,7 @@ class Fig extends StatelessWidget {
             ? Row(
                 spacing: 10,
                 children: [
-                  ClipRRect(borderRadius: BorderRadius.circular(10), child: SizedBox(width: 64, height: 48, child: Image.asset(r.mediaAsset(path), fit: BoxFit.cover, cacheWidth: 128, filterQuality: FilterQuality.low))),
+                  ClipRRect(borderRadius: BorderRadius.circular(10), child: SizedBox(width: 64, height: 48, child: Image.asset(bundle: contentBundle, r.mediaAsset(path), fit: BoxFit.cover, cacheWidth: 128, filterQuality: FilterQuality.low))),
                   Expanded(child: Text(label, style: ts(12.5, w800, const Color(0xFF6F6055)))),
                   Text('View', style: ts(11.5, w900, p.blue.deep)),
                 ],
@@ -481,7 +482,7 @@ class ZoomPage extends StatelessWidget with NoNav {
     child: Stack(
       children: [
         Positioned.fill(
-          child: InteractiveViewer(minScale: 1, maxScale: 6, child: Center(child: ColoredBox(color: white, child: Image.asset(asset, cacheWidth: 720, filterQuality: FilterQuality.medium)))),
+          child: InteractiveViewer(minScale: 1, maxScale: 6, child: Center(child: ColoredBox(color: white, child: Image.asset(bundle: contentBundle, asset, cacheWidth: 720, filterQuality: FilterQuality.medium)))),
         ),
         Positioned(top: 12 + MediaQuery.paddingOf(context).top, right: 12, child: CBtn('x', onTap: HighNav.of(context).back, label: 'Close')),
         if (alt != null)

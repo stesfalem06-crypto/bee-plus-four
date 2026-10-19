@@ -3,6 +3,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:high/content/content_vault.dart';
 import 'package:high/high/data/repository.dart';
 import 'package:high/high/notes/jr/data/notes_models.dart';
 import 'package:high/high/notes/jr/data/repository.dart';
@@ -11,10 +12,10 @@ import 'package:high/high/notes/jr/data/repository.dart';
 class _NoSplit extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) =>
-      key.contains('/notes/split/') ? Future.error(StateError('no $key')) : rootBundle.load(key);
+      key.contains('/notes/split/') ? Future.error(StateError('no $key')) : contentBundle.load(key);
   @override
   Future<String> loadString(String key, {bool cache = true}) =>
-      key.contains('/notes/split/') ? Future.error(StateError('no $key')) : rootBundle.loadString(key, cache: cache);
+      key.contains('/notes/split/') ? Future.error(StateError('no $key')) : contentBundle.loadString(key, cache: cache);
 }
 
 String _fp(Unit u) => [

@@ -1,5 +1,6 @@
 // Study Coach content (assets/high/coach/topics.json, built by tool/study_coach/build_topics.py). Read once, kept.
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 
 import 'package:flutter/services.dart';
 
@@ -22,7 +23,7 @@ class CoachBook {
   static const asset = 'assets/high/coach/topics.json';
   static Future<CoachBook>? _f;
   static CoachBook? cached;
-  static Future<CoachBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? rootBundle).loadString(asset).then((s) => cached = parse(s));
+  static Future<CoachBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
 
   static CoachBook parse(String s) {
     final o = jsonDecode(s) as Map<String, dynamic>;

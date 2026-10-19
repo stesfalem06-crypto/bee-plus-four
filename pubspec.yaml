@@ -1,7 +1,7 @@
 name: high
 description: "High – offline Grade 9-12 notes and Eritrean matriculation / model exam prep. Native Flutter (no WebView)."
 publish_to: 'none'
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ^3.8.0
@@ -32,53 +32,11 @@ dev_dependencies:
 flutter:
   uses-material-design: false
   assets:
-    - assets/high/exams/
-    - assets/high/exams/matric_lazy/
-    - assets/high/exams/matric_lazy/subjects/
-    - assets/high/exams/media/
-    - assets/high/exercises/
-    - assets/high/exercises/school/
-    - assets/high/exercises/drive_chapters/
-    - assets/high/exercises/drive_meta/
-    - assets/high/codes.json
-    - assets/high/motivation/
-    - assets/high/coach/
-    - assets/high/tutor/
+    # Study content is bundled ONLY encrypted (4 1.0.4+): tool/encrypt_assets.py turns every file listed in
+    # tool/content_assets.txt into assets/c/<blob>; lib/content/content_vault.dart decrypts on load.
+    # Never add assets/high/<content> folders here again (that would put the plain files back into the APK).
+    - assets/c/
     - assets/high/howto/
-    - assets/high/media/
-    - assets/high/media/img/
-    - assets/high/media/models/
-    - assets/high/notes/
-    - assets/high/notes/notes/
-    - assets/high/notes/split/
-    - assets/high/notes/notes/svg/agriculture_11/
-    - assets/high/notes/notes/svg/agriculture_12/
-    - assets/high/notes/notes/svg/agri_11/
-    - assets/high/notes/notes/svg/agri_12/
-    - assets/high/notes/notes/svg/biology_10/
-    - assets/high/notes/notes/svg/biology_11/
-    - assets/high/notes/notes/svg/biology_12/
-    - assets/high/notes/notes/svg/biology_9/
-    - assets/high/notes/notes/svg/business_economics_10/
-    - assets/high/notes/notes/svg/business_economics_11/
-    - assets/high/notes/notes/svg/business_economics_12/
-    - assets/high/notes/notes/svg/chemistry_10/
-    - assets/high/notes/notes/svg/chemistry_11/
-    - assets/high/notes/notes/svg/chemistry_12/
-    - assets/high/notes/notes/svg/chemistry_9/
-    - assets/high/notes/notes/svg/geography_10/
-    - assets/high/notes/notes/svg/geography_11/
-    - assets/high/notes/notes/svg/geography_12/
-    - assets/high/notes/notes/svg/geography_9/
-    - assets/high/notes/notes/svg/history_12/
-    - assets/high/notes/notes/svg/mathematics_9/
-    - assets/high/notes/notes/svg/mathematics_10/
-    - assets/high/notes/notes/svg/mathematics_11/
-    - assets/high/notes/notes/svg/mathematics_12/
-    - assets/high/notes/notes/svg/physics_10/
-    - assets/high/notes/notes/svg/physics_11/
-    - assets/high/notes/notes/svg/physics_12/
-    - assets/high/notes/notes/svg/physics_9/
   fonts:
     - family: HighNunito
       fonts:

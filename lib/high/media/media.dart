@@ -1,6 +1,7 @@
 // High media: openly licensed photos + 3D models (credits.json), and the notes "media" card that hosts
 // photos, 3D models, interactive sims, quick checks and diagram games (placed via assets/high/media/placements.json).
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 
 import 'package:flutter/widgets.dart';
 
@@ -96,7 +97,7 @@ class PhotoBox extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: LayoutBuilder(
-                      builder: (context, box) => Image.asset(c.asset, fit: BoxFit.contain, cacheWidth: decodeWidth(context, c, box.maxWidth), filterQuality: FilterQuality.medium),
+                      builder: (context, box) => Image.asset(bundle: contentBundle, c.asset, fit: BoxFit.contain, cacheWidth: decodeWidth(context, c, box.maxWidth), filterQuality: FilterQuality.medium),
                     ),
                   ),
                 ),
@@ -121,7 +122,7 @@ class ZoomPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => hp.PageShell(
     top: hp.TopBar(title: c.title, sub: '${c.author} · ${c.licence}', onBack: hp.HighNav.of(context).back, tab: false),
-    body: InteractiveViewer(maxScale: 6, child: Center(child: Image.asset(c.asset))),
+    body: InteractiveViewer(maxScale: 6, child: Center(child: Image.asset(bundle: contentBundle, c.asset))),
   );
 }
 

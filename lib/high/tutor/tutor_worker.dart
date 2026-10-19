@@ -4,6 +4,7 @@
 // scores), so a request costs one tiny message each way. Where isolates can't be spawned (tests with fake async) the
 // caller falls back to the in-thread index.
 import 'dart:async';
+import 'package:high/content/content_vault.dart';
 import 'dart:isolate';
 
 import 'package:flutter/services.dart';
@@ -31,7 +32,7 @@ class TutorWorker {
   }
 
   static Future<TutorWorker> _start(AssetBundle? bundle) async {
-    final data = await (bundle ?? rootBundle).load(TutorIndex.asset);
+    final data = await (bundle ?? contentBundle).load(TutorIndex.asset);
     final gz = TransferableTypedData.fromList([data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes)]);
     final rx = ReceivePort();
     await Isolate.spawn(_main, (rx.sendPort, gz), debugName: 'tutor-search');

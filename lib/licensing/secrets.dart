@@ -29,6 +29,10 @@ abstract final class FourSecrets {
   static const _bindSwA = <int>[184, 5, 128, 175, 163, 93, 94, 252, 178, 168, 59, 134, 206, 141, 78, 36, 121, 15, 27, 33, 221, 22, 96, 37, 221, 206, 153, 79, 237, 225, 15, 1];
   static const _bindSwB = <int>[69, 218, 36, 65, 11, 248, 102, 31, 173, 122, 170, 18, 252, 99, 41, 230, 34, 63, 69, 168, 119, 200, 255, 68, 207, 192, 104, 105, 203, 213, 191, 128];
 
+  // content key share A (4 1.0.4+). The content key is A xor B xor C: B is CONTENT_B in GuardChannel.kt and C is
+  // compiled in from the gitignored .four_content_define.json (tool/encrypt_assets.py). A alone is useless.
+  static const _contentA = <int>[205, 66, 18, 190, 24, 254, 189, 34, 7, 24, 90, 135, 141, 251, 34, 83, 109, 234, 151, 109, 188, 127, 11, 59, 176, 180, 164, 40, 0, 0, 235, 21];
+
   static const _signerA = <int>[39, 219, 181, 196, 92, 60, 128, 38, 8, 152, 112, 48, 31, 74, 1, 156, 34, 57, 67, 39, 178, 62, 86, 15, 208, 61, 131, 180, 73, 90, 6, 177];
   static const _signerB = <int>[208, 211, 9, 119, 37, 186, 128, 168, 180, 249, 153, 156, 29, 208, 62, 157, 41, 89, 21, 129, 190, 113, 137, 129, 160, 59, 211, 47, 228, 62, 137, 173];
 
@@ -45,6 +49,18 @@ abstract final class FourSecrets {
 
   /// Software HMAC key for the signed unlock state (second factor next to the Android Keystore key).
   static Uint8List bindSoftwareKey() => _x(_bindSwA, _bindSwB);
+
+  /// Dart share of the bundled-content key (A xor C) that is handed to the native side once (ContentChannel.kt
+  /// adds its share B). Empty when the build has no FOUR_CK (debug/tests without the key file).
+  static Uint8List contentShare() {
+    const c = String.fromEnvironment('FOUR_CK');
+    if (c.length != 64) return Uint8List(0);
+    final out = Uint8List(32);
+    for (var i = 0; i < 32; i++) {
+      out[i] = _contentA[i] ^ int.parse(c.substring(i * 2, i * 2 + 2), radix: 16);
+    }
+    return out;
+  }
 
   /// SHA-256 of the one release signing certificate of 4 (CN=Four, O=Four, C=ER; F7:08:BC…8F:1C).
   static Uint8List releaseSigner() => _x(_signerA, _signerB);

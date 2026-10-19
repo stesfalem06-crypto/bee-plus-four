@@ -12,7 +12,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('math_deep figures exist, are bundled, parse for every key and are small', () async {
-    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final pubspec = File('tool/content_assets.txt').readAsStringSync(); // bundled (encrypted) content folders, 4 1.0.4+
     final bad = <String>[];
     var n = 0;
     for (final f in Directory('assets/high/notes/split').listSync().whereType<File>().where((f) => f.path.contains('/math'))) {
@@ -40,7 +40,7 @@ void main() {
         }
         final path = spec['svg'] as String;
         final dir = path.substring(0, path.lastIndexOf('/') + 1);
-        if (!pubspec.contains('- assets/high/notes/notes/$dir')) bad.add('$path: folder not in pubspec assets');
+        if (!pubspec.contains('\nassets/high/notes/notes/$dir')) bad.add('$path: folder not in tool/content_assets.txt');
         final file = File('assets/high/notes/notes/$path');
         if (!file.existsSync()) {
           bad.add('$path: missing');

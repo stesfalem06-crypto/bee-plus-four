@@ -1,6 +1,7 @@
 // Motivation gallery: original illustrated quote cards (assets/high/motivation/quotes.json, art drawn in
 // quote_art.dart), "Quote of the day" on Home, favourites, and share-as-picture through the Android share sheet.
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
@@ -60,7 +61,7 @@ class QuoteBook {
   static QuoteBook? cached;
 
   /// read once, then kept (the file is ~15 KB)
-  static Future<QuoteBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? rootBundle).loadString(asset).then((s) => cached = parse(s));
+  static Future<QuoteBook> load([AssetBundle? bundle]) => _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
 
   static QuoteBook parse(String s) {
     final o = jsonDecode(s) as Map<String, dynamic>;

@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# 4 1.0.4: encrypted content blobs are generated (tool/encrypt_assets.py) and the key share file is secret
+/assets/c/*
+!/assets/c/.keep
+/.four_content_define.json

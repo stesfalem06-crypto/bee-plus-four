@@ -1,5 +1,6 @@
 // Gamified note blocks: quick-check mini quiz, tap-the-label diagram game, drag-to-match. XP / stars go to HighState.award.
 import 'dart:math' as math;
+import 'package:high/content/content_vault.dart';
 
 import 'package:flutter/widgets.dart';
 
@@ -177,7 +178,7 @@ class _DiagramLabelGameState extends State<DiagramLabelGame> {
                 height: h,
                 child: Stack(
                   children: [
-                    Positioned.fill(child: Image.asset(c.asset, fit: BoxFit.fill, cacheWidth: decodeWidth(context, c, w), filterQuality: FilterQuality.medium)),
+                    Positioned.fill(child: Image.asset(bundle: contentBundle, c.asset, fit: BoxFit.fill, cacheWidth: decodeWidth(context, c, w), filterQuality: FilterQuality.medium)),
                     for (final (i, pin) in widget.pins.indexed)
                       () {
                         final t = '${pin['t']}', show = explore || solved.contains(i);

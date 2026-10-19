@@ -1,6 +1,7 @@
 // Native 3D without a WebView: a small flat-shaded triangle renderer (Canvas.drawVertices + painter's sort).
 // Models are converted on the build box (tool/build_models.py) from glTF/GLB/OBJ to a compact .hm3 file.
 import 'dart:math' as math;
+import 'package:high/content/content_vault.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -57,7 +58,7 @@ class Mesh {
   }
 
   static final Map<String, Future<Mesh>> _cache = {};
-  static Future<Mesh> load(String asset, [AssetBundle? b]) => _cache[asset] ??= (b ?? rootBundle).load(asset).then(parse);
+  static Future<Mesh> load(String asset, [AssetBundle? b]) => _cache[asset] ??= (b ?? contentBundle).load(asset).then(parse);
 }
 
 class MeshPainter extends CustomPainter {

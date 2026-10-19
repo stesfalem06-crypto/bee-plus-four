@@ -52,6 +52,16 @@ class GuardChannel(private val activity: Activity) {
         // 16-byte AES key stored in FlutterSecureKeyStorage under this name (StorageCipherImplementationGCM).
         private const val FSS_OAEP_SUFFIX = ".FlutterSecureStoragePluginKeyOAEP"
         private const val FSS_WRAPPED_AES = "AESVGhpcyBpcyB0aGUga2V5IGZvciBhIHNlY3VyZSBzdG9yYWdlIEFFUyBLZXkK"
+
+        // Share B of the bundled-content key (4 1.0.4+, see tool/encrypt_assets.py). Key = A xor B xor C: A is in
+        // lib/licensing/secrets.dart, C is compiled into the Dart code from a gitignored file at build time.
+        private val CONTENT_B = byteArrayOf(-42, -61, -5, 66, 11, -56, 19, -23, 55, 59, -100, 69, 15, -119, -24, 104, 105, -14, 62, -2, -22, 111, -72, -23, 29, -19, 15, -109, 19, -121, -44, -5)
+
+        /** Content key from the Dart share (A xor C) and this side's share B. */
+        internal fun contentKey(dartShare: ByteArray): ByteArray? {
+            if (dartShare.size != CONTENT_B.size) return null
+            return ByteArray(CONTENT_B.size) { (dartShare[it].toInt() xor CONTENT_B[it].toInt()).toByte() }
+        }
     }
 
     private val bg = Executors.newSingleThreadExecutor()

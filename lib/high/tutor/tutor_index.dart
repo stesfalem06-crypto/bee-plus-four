@@ -3,6 +3,7 @@
 // into assets/high/tutor/tutor_index.bin (gzip'd binary, format documented there); decoded once, in a background
 // isolate, the first time the Tutor needs it. Postings stay packed in one byte array and are decoded per query term.
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 import 'dart:io' show GZipCodec;
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -92,7 +93,7 @@ class TutorIndex {
 
   /// loaded once per app run; the gunzip + parse runs in a background isolate
   static Future<TutorIndex> load([AssetBundle? bundle]) => _load ??= () async {
-    final data = await (bundle ?? rootBundle).load(asset);
+    final data = await (bundle ?? contentBundle).load(asset);
     return offThread(decode, data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
   }();
 
@@ -102,7 +103,7 @@ class TutorIndex {
   /// the exam-pack concept texts by doc id (tool/build_tutor_index.py), read the first time a concept is the answer,
   /// so the tutor never needs the 5 MB topic indexes (ExamRepo.ensureConcepts)
   static Future<Map<String, (String, String)>> concepts([AssetBundle? bundle]) => _concepts ??= () async {
-    final raw = await (bundle ?? rootBundle).loadString(conceptsAsset, cache: false);
+    final raw = await (bundle ?? contentBundle).loadString(conceptsAsset, cache: false);
     return offThread(parseConcepts, raw);
   }();
 

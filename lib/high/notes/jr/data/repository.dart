@@ -5,6 +5,7 @@
 // When the split file is missing (a build without the split step) the full book file is read instead, and still only
 // the opened unit is turned into models.
 import 'dart:async';
+import 'package:high/content/content_vault.dart';
 import 'dart:convert';
 import '../../../data/off_thread.dart';
 
@@ -49,7 +50,7 @@ class BookExtras {
 }
 
 class NotesRepo {
-  NotesRepo({AssetBundle? bundle, this.useIsolate = false, this.deferExtras = false}) : bundle = bundle ?? rootBundle;
+  NotesRepo({AssetBundle? bundle, this.useIsolate = false, this.deferExtras = false}) : bundle = bundle ?? contentBundle;
   final AssetBundle bundle;
   final bool useIsolate;
 

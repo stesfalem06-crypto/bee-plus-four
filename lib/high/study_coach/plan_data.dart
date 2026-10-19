@@ -1,6 +1,7 @@
 // Study check-in + 30-day plan (assets/high/coach/plan.json, built by tool/study_coach/build_plan.py, adapted
 // from the Focus30 design). Pure logic here (scoring, profile, plan days, unlocks, streak) so it is easy to test.
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 
 import 'package:flutter/services.dart';
 
@@ -12,7 +13,7 @@ class PlanBook {
   static Future<PlanBook>? _f;
   static PlanBook? cached;
   static Future<PlanBook> load([AssetBundle? bundle]) =>
-      _f ??= cached != null ? Future.value(cached) : (bundle ?? rootBundle).loadString(asset).then((s) => cached = parse(s));
+      _f ??= cached != null ? Future.value(cached) : (bundle ?? contentBundle).loadString(asset).then((s) => cached = parse(s));
   static PlanBook parse(String s) => PlanBook(jsonDecode(s) as Map<String, dynamic>);
 
   Map<String, dynamic> get checkin => raw['checkin'] as Map<String, dynamic>;

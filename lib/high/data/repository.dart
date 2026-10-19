@@ -1,6 +1,7 @@
 // Loads the exam packs (assets/high/exams, copied unchanged from the web app) and builds the same indexes as the web:
 // EXAMS (web order), EXAM, byId, SUBJECTS, YEARS, TOPIC_TITLE / TOPIC_PARENT / TOPIC_QS, CONCEPTS.
 import 'dart:convert';
+import 'package:high/content/content_vault.dart';
 import 'dart:math' as math;
 import 'off_thread.dart';
 
@@ -22,7 +23,7 @@ class Concept {
 }
 
 class ExamRepo {
-  ExamRepo({this.useIsolate = false, AssetBundle? bundle, this.lazyExercises = false, this.lazyExams = false, this.deferCodes = false}) : _bundle = bundle ?? rootBundle;
+  ExamRepo({this.useIsolate = false, AssetBundle? bundle, this.lazyExercises = false, this.lazyExams = false, this.deferCodes = false}) : _bundle = bundle ?? contentBundle;
   final bool useIsolate;
 
   /// app: read the Exercise bank per grade + subject when needed (see [ensureExercises]); tests: everything at init
